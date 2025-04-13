@@ -1,0 +1,8 @@
+services: []
+jobs:
+  - name: substack-summary-bot
+    type: cron
+    schedule: '30 1 * * *'  # Every day at 7:00 AM UTC (adjust for IST below)
+    env: python
+    buildCommand: ""
+    startCommand: python final_substack_reader.py
