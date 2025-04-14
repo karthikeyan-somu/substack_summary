@@ -2,7 +2,8 @@ name: Substack Summary Cron Job
 
 on:
   schedule:
-    - cron: '30 1 * * *'  # 7:00 AM IST (which is 1:30 AM UTC)
+    #- cron: '30 1 * * *'  # 7:00 AM IST (which is 1:30 AM UTC)
+    - cron: '*/10 * * * *'
   workflow_dispatch:  # allows manual run
 
 jobs:
