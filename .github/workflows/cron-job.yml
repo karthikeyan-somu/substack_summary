@@ -28,6 +28,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
+      
+      - name: Echo Cron Job Triggered
+        run: echo "Cron job triggered at $(date)"
+        
       - name: Run Substack Summary Script
         run: python final_substack_reader.py
