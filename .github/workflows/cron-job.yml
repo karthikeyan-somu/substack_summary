@@ -2,7 +2,8 @@ name: Substack Summary Cron Job
 
 on:
   schedule:
-    - cron: '*/5 * * * *'  # This will run every 5 minutes
+    #- cron: '*/5 * * * *'  # This will run every 5 minutes
+    - cron: '30 1 * * *'  # 7:00 AM IST (which is 1:30 AM UTC)
   workflow_dispatch:  # allows manual run
 
 jobs:
