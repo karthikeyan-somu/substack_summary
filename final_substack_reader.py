@@ -41,38 +41,34 @@ def summarize_article(content):
         "Content-Type": "application/json"
     }
 
+    truncated_content = content[:3000]  # Limit the content size
     prompt = (
         "You are an expert in content analysis and summarization. Read the following Substack article content "
         "and summarize it in 4-6 succinct, insightful bullet points. Focus on the core arguments, key insights, "
-        "and actionable takeaways. Present the summary in a professional, high-level tone, avoiding unnecessary details "
-        "and providing a clear and concise overview of the article's most important points.\n\n"
-        f"Article:\n{content}\n\nSummary:"
+        "and actionable takeaways. Present the summary in a professional, high-level tone.\n\n"
+        f"Article:\n{truncated_content}\n\nSummary:"
     )
     payload = {"inputs": prompt, "parameters": {"max_new_tokens": 300}}
 
-    try:
-        response = requests.post(api_url, headers=headers_llama, json=payload)
-
-        if response.status_code != 200:
-            print(f"❌ API responded with status {response.status_code}")
-            print("Response content:", response.text)
-            return f"Error: API returned status code {response.status_code}"
-
+    for attempt in range(3):
         try:
-            result = response.json()
-        except ValueError:
-            print("❌ Could not parse JSON response:", response.text)
-            return "Error: Invalid JSON response from Hugging Face."
+            response = requests.post(api_url, headers=headers_llama, json=payload)
+            if response.status_code == 200:
+                result = response.json()
+                if isinstance(result, list) and "generated_text" in result[0]:
+                    return result[0]['generated_text'].split(prompt)[-1].strip()
+                else:
+                    return "Error: Unexpected format in Hugging Face response."
 
-        if isinstance(result, dict) and "error" in result:
-            return f"API Error: {result['error']}"
-        if isinstance(result, list) and "generated_text" in result[0]:
-            return result[0]['generated_text'].split(prompt)[-1].strip()
+            print(f"⚠️ Attempt {attempt + 1} - API status: {response.status_code}")
+            sleep(2)
 
-        return "Error: Unexpected response format from Hugging Face."
+        except Exception as e:
+            print(f"⚠️ Attempt {attempt + 1} - Exception: {e}")
+            sleep(2)
 
-    except Exception as e:
-        return f"Error summarizing: {e}"
+    return f"Error: API returned status code {response.status_code} after 3 attempts"
+
 
 # === Send message(s) to Telegram with automatic splitting ===
 def send_telegram_messages(full_text):
