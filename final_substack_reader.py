@@ -35,12 +35,12 @@ def get_article_content(url, retries=3, timeout=10):
 
 # === Summarize article using Hugging Face API ===
 def summarize_article(content):
-    #api_url = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1"
     api_url = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
     headers_llama = {
         "Authorization": f"Bearer {HUGGINGFACE_API_KEY}",
         "Content-Type": "application/json"
     }
+
     prompt = (
         "You are an expert in content analysis and summarization. Read the following Substack article content "
         "and summarize it in 4-6 succinct, insightful bullet points. Focus on the core arguments, key insights, "
@@ -52,10 +52,25 @@ def summarize_article(content):
 
     try:
         response = requests.post(api_url, headers=headers_llama, json=payload)
-        result = response.json()
+
+        if response.status_code != 200:
+            print(f"❌ API responded with status {response.status_code}")
+            print("Response content:", response.text)
+            return f"Error: API returned status code {response.status_code}"
+
+        try:
+            result = response.json()
+        except ValueError:
+            print("❌ Could not parse JSON response:", response.text)
+            return "Error: Invalid JSON response from Hugging Face."
+
         if isinstance(result, dict) and "error" in result:
             return f"API Error: {result['error']}"
-        return result[0]['generated_text'].split(prompt)[-1].strip()
+        if isinstance(result, list) and "generated_text" in result[0]:
+            return result[0]['generated_text'].split(prompt)[-1].strip()
+
+        return "Error: Unexpected response format from Hugging Face."
+
     except Exception as e:
         return f"Error summarizing: {e}"
 
