@@ -41,44 +41,30 @@ def summarize_article(content):
         "Content-Type": "application/json"
     }
 
-    truncated_content = content[:3000]  # Prevent sending too much
-    prompt = (
-        "You are an expert in content analysis and summarization. Read the following Substack article content "
-        "and summarize it in 4-6 succinct, insightful bullet points. Focus on the core arguments, key insights, "
-        "and actionable takeaways. Present the summary in a professional, high-level tone.\n\n"
-        f"Article:\n{truncated_content}\n\nSummary:"
-    )
-
+    truncated_content = content[:3000]
     payload = {
-        "inputs": prompt,
+        "inputs": truncated_content,
         "parameters": {"max_new_tokens": 300}
     }
 
-    for attempt in range(3):
-        try:
-            response = requests.post(api_url, headers=headers, json=payload)
-            if response.status_code == 200:
-                result = response.json()
-                # ✅ Handle both list and dict formats
-                if isinstance(result, list) and "generated_text" in result[0]:
-                    return result[0]["generated_text"].split("Summary:")[-1].strip()
-                else:
-                    return f"⚠️ Unexpected response format: {result}"
+    try:
+        response = requests.post(api_url, headers=headers, json=payload)
+        result = response.json()
 
-            # Handle common error responses from Hugging Face
-            elif response.status_code in {400, 401, 403, 500}:
-                error_info = response.json()
-                return f"⚠️ Hugging Face API error: {error_info.get('error', 'Unknown error')} (status code {response.status_code})"
-
+        if isinstance(result, list):
+            item = result[0]
+            if "generated_text" in item:
+                return item["generated_text"]
+            elif "summary_text" in item:
+                return item["summary_text"]
             else:
-                print(f"⚠️ Unexpected status code: {response.status_code}")
-                sleep(2)
-
-        except Exception as e:
-            print(f"❌ Exception during summarization: {e}")
-            sleep(2)
-
-    return "❌ Failed to summarize after multiple attempts."
+                return f"⚠️ Unexpected response keys: {list(item.keys())}"
+        elif isinstance(result, dict) and "error" in result:
+            return f"⚠️ Hugging Face API error: {result['error']}"
+        else:
+            return f"⚠️ Unexpected response format: {result}"
+    except Exception as e:
+        return f"❌ Error summarizing: {e}"
 
 
 # === Send message(s) to Telegram with automatic splitting ===
