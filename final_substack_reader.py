@@ -36,38 +36,49 @@ def get_article_content(url, retries=3, timeout=10):
 # === Summarize article using Hugging Face API ===
 def summarize_article(content):
     api_url = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
-    headers_llama = {
+    headers = {
         "Authorization": f"Bearer {HUGGINGFACE_API_KEY}",
         "Content-Type": "application/json"
     }
 
-    truncated_content = content[:3000]  # Limit the content size
+    truncated_content = content[:3000]  # Prevent sending too much
     prompt = (
         "You are an expert in content analysis and summarization. Read the following Substack article content "
         "and summarize it in 4-6 succinct, insightful bullet points. Focus on the core arguments, key insights, "
         "and actionable takeaways. Present the summary in a professional, high-level tone.\n\n"
         f"Article:\n{truncated_content}\n\nSummary:"
     )
-    payload = {"inputs": prompt, "parameters": {"max_new_tokens": 300}}
+
+    payload = {
+        "inputs": prompt,
+        "parameters": {"max_new_tokens": 300}
+    }
 
     for attempt in range(3):
         try:
-            response = requests.post(api_url, headers=headers_llama, json=payload)
+            response = requests.post(api_url, headers=headers, json=payload)
             if response.status_code == 200:
                 result = response.json()
+                # ✅ Handle both list and dict formats
                 if isinstance(result, list) and "generated_text" in result[0]:
-                    return result[0]['generated_text'].split(prompt)[-1].strip()
+                    return result[0]["generated_text"].split("Summary:")[-1].strip()
                 else:
-                    return "Error: Unexpected format in Hugging Face response."
+                    return f"⚠️ Unexpected response format: {result}"
 
-            print(f"⚠️ Attempt {attempt + 1} - API status: {response.status_code}")
-            sleep(2)
+            # Handle common error responses from Hugging Face
+            elif response.status_code in {400, 401, 403, 500}:
+                error_info = response.json()
+                return f"⚠️ Hugging Face API error: {error_info.get('error', 'Unknown error')} (status code {response.status_code})"
+
+            else:
+                print(f"⚠️ Unexpected status code: {response.status_code}")
+                sleep(2)
 
         except Exception as e:
-            print(f"⚠️ Attempt {attempt + 1} - Exception: {e}")
+            print(f"❌ Exception during summarization: {e}")
             sleep(2)
 
-    return f"Error: API returned status code {response.status_code} after 3 attempts"
+    return "❌ Failed to summarize after multiple attempts."
 
 
 # === Send message(s) to Telegram with automatic splitting ===
