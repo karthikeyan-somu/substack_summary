@@ -35,7 +35,8 @@ def get_article_content(url, retries=3, timeout=10):
 
 # === Summarize article using Hugging Face API ===
 def summarize_article(content):
-    api_url = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1"
+    #api_url = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1"
+    api_url = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
     headers_llama = {
         "Authorization": f"Bearer {HUGGINGFACE_API_KEY}",
         "Content-Type": "application/json"
